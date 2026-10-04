@@ -1,0 +1,6 @@
+{
+  "name": "HealthPulse Healthcare Management",
+  "description": "Online Healthcare Management System with role-based dashboards for Admin, Doctor, and Patient portals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealthPulse — Next-Gen Precision Medicine & 3D Biometrics</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Cormorant Garamond & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            cream: {
+              50: '#FDFCF9',
+              100: '#F9F6F0',
+              200: '#F4EFE6',
+              300: '#EDE4D5',
+              400: '#DFD2BE',
+            },
+            navy: {
+              800: '#16253B',
+              900: '#0E1A2C',
+              950: '#08111E',
+            },
+            champagne: {
+              300: '#EBD8B8',
+              400: '#DCBF90',
+              500: '#C4A265',
+            },
+            accent: {
+              emerald: '#158066',
+              emeraldHover: '#0E634F',
+              emeraldLight: '#E8F5F1',
+              cyan: '#0EA5E9',
+            }
+          },
+          boxShadow: {
+            'luxury-card': '0 25px 50px -12px rgba(14, 26, 44, 0.09), 0 0 1px 1px rgba(220, 212, 198, 0.45)',
+            'floating-hud': '0 20px 40px -10px rgba(14, 26, 44, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.8)',
+            'glow-emerald': '0 0 25px rgba(21, 128, 102, 0.35)',
+            'glow-cyan': '0 0 25px rgba(14, 165, 233, 0.35)',
+            'dark-pill': '0 10px 25px -4px rgba(14, 26, 44, 0.35)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Smooth Scrollbar */
+    ::-webkit-scrollbar {
+      width: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F4EFE6;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CFC3AE;
+      border-radius: 9999px;
+    }
+
+    /* Ambient Subtle Grid */
+    .bg-luxury-grid {
+      background-image: 
+        radial-gradient(rgba(14, 26, 44, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(249, 246, 240, 0.6), rgba(249, 246, 240, 1));
+      background-size: 28px 28px, 100% 100%;
+    }
+
+    /* EKG ECG Pulse Animation for HUD card */
+    @keyframes ekgScan {
+      0% { stroke-dashoffset: 600; }
+      100% { stroke-dashoffset: 0; }
+    }
+    .ekg-line {
+      stroke-dasharray: 600;
+      animation: ekgScan 2.4s linear infinite;
+    }
+
+    /* Canvas full-area touch styling */
+    #three-canvas-container {
+      touch-action: none;
+    }
+
+    /* Glass pill elements */
+    .glass-hud {
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(237, 228, 213, 0.9);
+    }
+
+    .dark-glass-hud {
+      background: rgba(14, 26, 44, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-cream-100 text-slate-800 font-sans antialiased overflow-x-hidden selection:bg-navy-900 selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- LUXURY FLOATING HEADER                                                    -->
+  <!-- ========================================================================= -->
+  <header class="fixed top-0 inset-x-0 z-50 transition-all duration-300 backdrop-blur-md bg-cream-100/85 border-b border-cream-300/70" id="siteHeader">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <a href="#" class="flex items-center gap-3 group">
+        <div class="w-10 h-10 rounded-2xl bg-navy-900 text-white flex items-center justify-center transition-all duration-300 group-hover:scale-105 shadow-md">
+          <i data-lucide="cross" class="w-5 h-5 fill-white stroke-none"></i>
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-baseline gap-1">
+            <span class="text-2xl font-bold tracking-tight text-navy-950 font-serif">HealthPulse</span>
+            <span class="w-2 h-2 rounded-full bg-accent-emerald animate-pulse"></span>
+          </div>
+          <span class="text-[9px] uppercase tracking-[0.2em] font-mono text-slate-400 -mt-1 font-semibold">3D Precision Medicine</span>
+        </div>
+      </a>
+
+      <!-- Desktop Luxury Links -->
+      <nav class="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-slate-600">
+        <a href="#hero" class="text-navy-950 flex items-center gap-1.5 transition">
+          <span class="w-1.5 h-1.5 rounded-full bg-navy-900"></span> Home
+        </a>
+        <a href="#biometrics" class="hover:text-navy-950 transition">3D Diagnostics</a>
+        <a href="#services" class="hover:text-navy-950 transition">Specialties</a>
+        <a href="#telemetry" class="hover:text-navy-950 transition">Live Vitals</a>
+        <a href="#doctors" class="hover:text-navy-950 transition">Physicians</a>
+      </nav>
+
+      <!-- Right Action CTA -->
+      <div class="flex items-center gap-3">
+        <!-- Live WebGL Engine status badge -->
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-cream-200/90 border border-cream-300 text-[11px] font-mono text-slate-600">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+          <span class="text-slate-500 font-semibold" id="fpsCounter">60 FPS</span>
+          <span class="text-slate-300">|</span>
+          <span class="text-navy-950 font-bold tracking-wide">WebGL 2.0</span>
+        </div>
+
+        <button 
+          onclick="openBookingModal()"
+          class="relative group overflow-hidden px-5 sm:px-6 py-2.5 rounded-full bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold tracking-wide transition-all shadow-dark-pill hover:shadow-xl active:scale-95 flex items-center gap-2"
+        >
+          <i data-lucide="calendar" class="w-3.5 h-3.5 text-champagne-400"></i>
+          <span>Book Consultation</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- HERO SECTION WITH INTERACTIVE 3D ENGINE                                   -->
+  <!-- ========================================================================= -->
+  <section id="hero" class="relative min-h-screen pt-28 pb-16 flex flex-col justify-center bg-luxury-grid overflow-hidden">
+    
+    <!-- Background 3D Canvas Canvas Layer -->
+    <div id="three-canvas-container" class="absolute inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing"></div>
+
+    <!-- Radial Soft Mask so text is crisp on left -->
+    <div class="absolute inset-0 pointer-events-none bg-gradient-to-r from-cream-100 via-cream-100/90 to-transparent lg:w-2/3 z-0"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 relative z-10 w-full flex-1 flex flex-col justify-center">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[640px]">
+        
+        <!-- Left Content: Editorial Typography -->
+        <div class="lg:col-span-7 space-y-6 pt-4 lg:pt-0">
+          
+          <!-- Micro Pill Indicator -->
+          <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/95 border border-[#E4DAC8] shadow-xs">
+            <span class="flex h-2 w-2 relative">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+            </span>
+            <span class="text-[11px] font-mono font-bold tracking-wider uppercase text-navy-900">
+              HealthPulse Clinical OS v4.2
+            </span>
+            <span class="text-slate-300">/</span>
+            <span class="text-[11px] font-medium text-slate-500">Autonomous 3D Vitals</span>
+          </div>
+
+          <!-- Main Serif Headline -->
+          <h1 class="text-4xl sm:text-6xl xl:text-7xl font-serif font-bold text-navy-950 tracking-tight leading-[1.08]">
+            Expert Care.<br>
+            <span class="italic font-normal text-slate-700">Accelerated by</span>
+            <span class="relative inline-block text-navy-900">
+              3D Vitals.
+              <span class="absolute bottom-1 left-0 w-full h-[3px] bg-accent-emerald/40 rounded-full"></span>
+            </span>
+          </h1>
+
+          <!-- Body Description -->
+          <p class="text-slate-600 text-sm sm:text-base max-w-xl font-normal leading-relaxed">
+            Bridging clinical mastery with real-time biometric simulation. Experience ultra-precise genomic mapping, holographic cardiac telemetry, and compassionate specialist consultations designed for longevity.
+          </p>
+
+          <!-- Dual CTAs -->
+          <div class="pt-2 flex flex-wrap items-center gap-3 sm:gap-4">
+            <button 
+              onclick="openBookingModal()"
+              class="px-7 py-3.5 rounded-2xl bg-accent-emerald hover:bg-accent-emeraldHover text-white text-xs font-bold tracking-wider uppercase flex items-center gap-2.5 shadow-glow-emerald transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <i data-lucide="stethoscope" class="w-4 h-4"></i>
+              <span>Schedule Appointment</span>
+            </button>
+
+            <a 
+              href="#biometrics"
+              class="px-7 py-3.5 rounded-2xl bg-white hover:bg-cream-200 text-navy-950 border border-cream-300 text-xs font-bold tracking-wider uppercase flex items-center gap-2.5 shadow-xs transition-all hover:border-slate-400"
+            >
+              <i data-lucide="scan-line" class="w-4 h-4 text-accent-emerald"></i>
+              <span>Explore Diagnostic Suite</span>
+            </a>
+          </div>
+
+          <!-- Quick Highlight Statistics -->
+          <div class="pt-6 grid grid-cols-3 gap-4 border-t border-cream-300/80 max-w-lg">
+            <div>
+              <div class="text-2xl sm:text-3xl font-serif font-bold text-navy-950">99.8%</div>
+              <div class="text-[11px] text-slate-500 font-medium">Diagnostic Precision</div>
+            </div>
+            <div>
+              <div class="text-2xl sm:text-3xl font-serif font-bold text-navy-950">&lt; 12 min</div>
+              <div class="text-[11px] text-slate-500 font-medium">Average Triage Time</div>
+            </div>
+            <div>
+              <div class="text-2xl sm:text-3xl font-serif font-bold text-navy-950">45k+</div>
+              <div class="text-[11px] text-slate-500 font-medium">Recovered Patients</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Side: 3D HUD Telemetry Overlay Controls -->
+        <div class="lg:col-span-5 pointer-events-none relative flex flex-col justify-between h-full min-h-[460px] py-4">
+          
+          <!-- Top Floating HUD: Real-time Cardiac Rhythm -->
+          <div class="pointer-events-auto self-end glass-hud p-4 rounded-3xl shadow-floating-hud w-72 transform transition hover:scale-102 border border-white/60">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="w-7 h-7 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                  <i data-lucide="heart" class="w-4 h-4 fill-rose-500 text-rose-500 animate-bounce"></i>
+                </span>
+                <div>
+                  <div class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Telemetry</div>
+                  <div class="text-xs font-bold text-navy-950">Sinus Node Rhythm</div>
+                </div>
+              </div>
+              <span class="text-xs font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">NORMAL</span>
+            </div>
+
+            <!-- Animated EKG SVG Wave -->
+            <div class="h-10 w-full overflow-hidden bg-cream-50 rounded-xl p-1 border border-cream-200/80 flex items-center">
+              <svg class="w-full h-full" viewBox="0 0 200 40">
+                <path 
+                  class="ekg-line stroke-rose-500" 
+                  fill="none" 
+                  stroke-width="2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"
+                  d="M0,20 L40,20 L50,8 L60,32 L70,14 L80,24 L90,20 L130,20 L140,4 L150,36 L160,18 L170,22 L200,20"
+                />
+              </svg>
+            </div>
+
+            <div class="flex items-baseline justify-between mt-2 pt-2 border-t border-cream-200">
+              <div class="flex items-baseline gap-1">
+                <span class="text-xl font-bold font-mono text-navy-950" id="liveBpmValue">72</span>
+                <span class="text-[10px] font-semibold text-slate-400">BPM</span>
+              </div>
+              <span class="text-[10px] text-slate-500 font-mono">Variability: 44ms (Optimal)</span>
+            </div>
+          </div>
+
+          <!-- Bottom Floating HUD: Interactive 3D Model Switcher Bar -->
+          <div class="pointer-events-auto self-start glass-hud p-4 rounded-3xl shadow-floating-hud w-full max-w-sm mt-auto border border-white/60">
+            <div class="flex items-center justify-between pb-2 mb-2 border-b border-cream-200">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <i data-lucide="layers" class="w-3.5 h-3.5 text-accent-emerald"></i>
+                Select 3D Biometric Mesh
+              </span>
+              <span class="text-[10px] font-mono text-accent-emerald font-semibold" id="modelLabel">DNA HELIX</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <button 
+                onclick="switch3DModel('dna')" 
+                id="btnMesh-dna"
+                class="model-tab-btn py-2 px-2.5 rounded-xl text-center text-xs font-bold transition-all bg-navy-900 text-white shadow-xs"
+              >
+                DNA Helix
+              </button>
+              <button 
+                onclick="switch3DModel('heart')" 
+                id="btnMesh-heart"
+                class="model-tab-btn py-2 px-2.5 rounded-xl text-center text-xs font-semibold transition-all bg-white hover:bg-cream-200 text-slate-700 border border-cream-300"
+              >
+                Vital Core
+              </button>
+              <button 
+                onclick="switch3DModel('cell')" 
+                id="btnMesh-cell"
+                class="model-tab-btn py-2 px-2.5 rounded-xl text-center text-xs font-semibold transition-all bg-white hover:bg-cream-200 text-slate-700 border border-cream-300"
+              >
+                Cell Matrix
+              </button>
+            </div>
+
+            <!-- 3D View Controls -->
+            <div class="flex items-center justify-between mt-3 pt-2 text-[11px] text-slate-600 font-medium">
+              <button onclick="toggleWireframe()" class="hover:text-navy-950 flex items-center gap-1 transition">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                <span id="wireframeText">Wireframe: OFF</span>
+              </button>
+              <button onclick="reset3DCamera()" class="hover:text-navy-950 flex items-center gap-1 transition">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span>Reset View</span>
+              </button>
+              <span class="text-slate-400 font-mono text-[10px]">Drag to rotate</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- FLOATING QUICK APPOINTMENT SEARCH BAR                                     -->
+  <!-- ========================================================================= -->
+  <section class="relative z-20 -mt-10 max-w-6xl mx-auto px-4 sm:px-6">
+    <div class="dark-glass-hud text-white p-4 sm:p-6 rounded-3xl shadow-2xl border border-white/10">
+      
+      <div class="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <i data-lucide="calendar-search" class="w-4 h-4 text-champagne-400"></i>
+          <span class="text-xs sm:text-sm font-semibold tracking-wide text-cream-100 font-sans">
+            Consultation Booking & Specialist Directory
+          </span>
+        </div>
+        <div class="text-[11px] font-mono text-emerald-400 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span>18 Specialists Available Today</span>
+        </div>
+      </div>
+
+      <form onsubmit="handleQuickSearch(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        
+        <!-- Doctor Field -->
+        <div>
+          <label class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Select Physician</label>
+          <div class="relative">
+            <select id="quickDoctor" class="w-full bg-navy-900/90 text-xs text-white px-3.5 py-3 rounded-xl border border-white/15 focus:outline-none focus:border-champagne-400 transition appearance-none cursor-pointer">
+              <option value="Any Specialist">Any Lead Specialist</option>
+              <option value="Dr. Robert Namen (Cardiology)">Dr. Robert Namen — Cardiology</option>
+              <option value="Dr. Monika Barton (Pediatrics)">Dr. Monika Barton — Pediatrics</option>
+              <option value="Dr. Hatherl Vonston (Neurology)">Dr. Hatherl Vonston — Neurology</option>
+              <option value="Dr. Debora Homen (Internal Med)">Dr. Debora Homen — Internal Med</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3.5 pointer-events-none"></i>
+          </div>
+        </div>
+
+        <!-- Specialty -->
+        <div>
+          <label class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Clinical Field</label>
+          <div class="relative">
+            <select id="quickSpecialty" class="w-full bg-navy-900/90 text-xs text-white px-3.5 py-3 rounded-xl border border-white/15 focus:outline-none focus:border-champagne-400 transition appearance-none cursor-pointer">
+              <option value="Cardiology">Cardiology & Hemodynamics</option>
+              <option value="Neurology">Neurology & Cognitive</option>
+              <option value="Genomics">Genomics & DNA Profiling</option>
+              <option value="Orthopedics">Robotic Orthopedics</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3.5 pointer-events-none"></i>
+          </div>
+        </div>
+
+        <!-- Date Picker -->
+        <div>
+          <label class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Visit Date</label>
+          <div class="relative">
+            <input 
+              type="date" 
+              id="quickDate" 
+              value="2026-09-30"
+              class="w-full bg-navy-900/90 text-xs text-white px-3.5 py-3 rounded-xl border border-white/15 focus:outline-none focus:border-champagne-400 transition cursor-pointer"
+            >
+          </div>
+        </div>
+
+        <!-- Time Slot -->
+        <div>
+          <label class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Preferred Slot</label>
+          <div class="relative">
+            <select id="quickTime" class="w-full bg-navy-900/90 text-xs text-white px-3.5 py-3 rounded-xl border border-white/15 focus:outline-none focus:border-champagne-400 transition appearance-none cursor-pointer">
+              <option value="09:00 AM">09:00 AM — Morning</option>
+              <option value="11:30 AM">11:30 AM — Midday</option>
+              <option value="02:15 PM">02:15 PM — Afternoon</option>
+              <option value="05:00 PM">05:00 PM — Evening</option>
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3.5 pointer-events-none"></i>
+          </div>
+        </div>
+
+        <!-- Search CTA -->
+        <div class="flex items-end">
+          <button 
+            type="submit" 
+            class="w-full py-3 px-5 rounded-xl bg-accent-emerald hover:bg-accent-emeraldHover text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition duration-200 shadow-glow-emerald active:scale-95"
+          >
+            <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            <span>Confirm Slot</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 3D DIAGNOSTICS & CELLULAR SUITE                                           -->
+  <!-- ========================================================================= -->
+  <section id="biometrics" class="py-24 max-w-7xl mx-auto px-4 sm:px-8">
+    <div class="text-center max-w-2xl mx-auto mb-16">
+      <span class="text-xs font-mono font-bold tracking-widest text-accent-emerald uppercase">
+        Advanced 3D Biometrics
+      </span>
+      <h2 class="text-3xl sm:text-5xl font-serif font-bold text-navy-950 mt-2">
+        Clinical Precision at the Molecular Scale.
+      </h2>
+      <p class="text-slate-600 text-sm mt-3 leading-relaxed">
+        Our diagnostics platform turns raw biometric telemetry into interactive, micro-dimensional simulations—allowing our clinical panel to intervene before symptoms surface.
+      </p>
+    </div>
+
+    <!-- 4 Interactive Diagnostic Cards with Hover Parallax -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      
+      <!-- Card 1 -->
+      <div class="group bg-white p-7 rounded-3xl border border-cream-300 shadow-luxury-card hover:border-slate-400 transition-all duration-300 hover:-translate-y-1">
+        <div class="w-12 h-12 rounded-2xl bg-cream-100 border border-cream-200 flex items-center justify-center text-navy-950 group-hover:bg-navy-900 group-hover:text-white transition-colors duration-300 mb-6">
+          <i data-lucide="dna" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[10px] font-mono font-bold tracking-wider text-accent-emerald uppercase">Genomics</span>
+        <h3 class="text-xl font-serif font-bold text-navy-950 mt-1 mb-2">Double-Helix Sequencing</h3>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Comprehensive 3D genome sequencing detecting hereditary vulnerability with 99.98% algorithmic accuracy.
+        </p>
+        <div class="mt-6 pt-4 border-t border-cream-200 flex items-center justify-between text-xs font-semibold text-navy-950">
+          <span>Read Protocol</span>
+          <i data-lucide="arrow-right" class="w-4 h-4 transform group-hover:translate-x-1 transition"></i>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="group bg-white p-7 rounded-3xl border border-cream-300 shadow-luxury-card hover:border-slate-400 transition-all duration-300 hover:-translate-y-1">
+        <div class="w-12 h-12 rounded-2xl bg-cream-100 border border-cream-200 flex items-center justify-center text-navy-950 group-hover:bg-navy-900 group-hover:text-white transition-colors duration-300 mb-6">
+          <i data-lucide="heart-pulse" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[10px] font-mono font-bold tracking-wider text-accent-emerald uppercase">Cardiology</span>
+        <h3 class="text-xl font-serif font-bold text-navy-950 mt-1 mb-2">4D Hemodynamic Vitals</h3>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Volumetric arterial chamber analysis simulating turbulent shear stress and real-time oxygen transport.
+        </p>
+        <div class="mt-6 pt-4 border-t border-cream-200 flex items-center justify-between text-xs font-semibold text-navy-950">
+          <span>Read Protocol</span>
+          <i data-lucide="arrow-right" class="w-4 h-4 transform group-hover:translate-x-1 transition"></i>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="group bg-white p-7 rounded-3xl border border-cream-300 shadow-luxury-card hover:border-slate-400 transition-all duration-300 hover:-translate-y-1">
+        <div class="w-12 h-12 rounded-2xl bg-cream-100 border border-cream-200 flex items-center justify-center text-navy-950 group-hover:bg-navy-900 group-hover:text-white transition-colors duration-300 mb-6">
+          <i data-lucide="sparkles" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[10px] font-mono font-bold tracking-wider text-accent-emerald uppercase">AI Triage</span>
+        <h3 class="text-xl font-serif font-bold text-navy-950 mt-1 mb-2">Neural Triage Engine</h3>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Continuous symptom correlation cross-referencing global clinical trials and automated risk scoring.
+        </p>
+        <div class="mt-6 pt-4 border-t border-cream-200 flex items-center justify-between text-xs font-semibold text-navy-950">
+          <span>Read Protocol</span>
+          <i data-lucide="arrow-right" class="w-4 h-4 transform group-hover:translate-x-1 transition"></i>
+        </div>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="group bg-white p-7 rounded-3xl border border-cream-300 shadow-luxury-card hover:border-slate-400 transition-all duration-300 hover:-translate-y-1">
+        <div class="w-12 h-12 rounded-2xl bg-cream-100 border border-cream-200 flex items-center justify-center text-navy-950 group-hover:bg-navy-900 group-hover:text-white transition-colors duration-300 mb-6">
+          <i data-lucide="shield-plus" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[10px] font-mono font-bold tracking-wider text-accent-emerald uppercase">Robotics</span>
+        <h3 class="text-xl font-serif font-bold text-navy-950 mt-1 mb-2">Micro-Invasive Guidance</h3>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Sub-millimeter haptic surgical navigation ensuring minimal recovery windows and expedited healing.
+        </p>
+        <div class="mt-6 pt-4 border-t border-cream-200 flex items-center justify-between text-xs font-semibold text-navy-950">
+          <span>Read Protocol</span>
+          <i data-lucide="arrow-right" class="w-4 h-4 transform group-hover:translate-x-1 transition"></i>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- FEATURED SERVICES (Matching original layout)                             -->
+  <!-- ========================================================================= -->
+  <section id="services" class="py-20 bg-cream-200/50 border-y border-cream-300/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8">
+      
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-12">
+        <div>
+          <span class="text-xs font-mono font-bold tracking-widest text-accent-emerald uppercase">Clinical Scope</span>
+          <h2 class="text-3xl sm:text-4xl font-serif font-bold text-navy-950 mt-1">Featured Services</h2>
+        </div>
+        <p class="text-xs text-slate-500 max-w-sm mt-3 sm:mt-0">
+          Multi-disciplinary medical practices designed for holistic wellness, routine checkups, and complex surgery.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <!-- Primary Care -->
+        <div class="bg-white rounded-3xl p-6 border border-cream-300 shadow-xs flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-cream-100 border border-cream-200 text-teal-800 flex items-center justify-center mb-4">
+              <i data-lucide="first-aid" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-lg font-serif font-bold text-navy-950">Primary Care</h4>
+            <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+              Longitudinal proactive healthcare, executive physicals, preventative immunizations, and general wellness.
+            </p>
+          </div>
+          <button onclick="openBookingWithSpecialty('Primary Care')" class="mt-6 text-xs font-bold text-accent-emerald hover:underline text-left">
+            Book Primary Visit &rarr;
+          </button>
+        </div>
+
+        <!-- Cardiology -->
+        <div class="bg-white rounded-3xl p-6 border border-cream-300 shadow-xs flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-cream-100 border border-cream-200 text-rose-700 flex items-center justify-center mb-4">
+              <i data-lucide="heart" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-lg font-serif font-bold text-navy-950">Cardiology</h4>
+            <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+              Advanced echocardiography, rhythm management, lipidology optimization, and cardiac catheterization.
+            </p>
+          </div>
+          <button onclick="openBookingWithSpecialty('Cardiology')" class="mt-6 text-xs font-bold text-accent-emerald hover:underline text-left">
+            Book Cardiology &rarr;
+          </button>
+        </div>
+
+        <!-- Pediatrics -->
+        <div class="bg-white rounded-3xl p-6 border border-cream-300 shadow-xs flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-cream-100 border border-cream-200 text-amber-700 flex items-center justify-center mb-4">
+              <i data-lucide="baby" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-lg font-serif font-bold text-navy-950">Pediatrics</h4>
+            <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+              Gentle developmental milestone screenings, adolescent mental health support, and newborn wellness care.
+            </p>
+          </div>
+          <button onclick="openBookingWithSpecialty('Pediatrics')" class="mt-6 text-xs font-bold text-accent-emerald hover:underline text-left">
+            Book Pediatric Care &rarr;
+          </button>
+        </div>
+
+        <!-- Wellness Exams -->
+        <div class="bg-white rounded-3xl p-6 border border-cream-300 shadow-xs flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-xl bg-cream-100 border border-cream-200 text-sky-700 flex items-center justify-center mb-4">
+              <i data-lucide="activity-square" class="w-5 h-5"></i>
+            </div>
+            <h4 class="text-lg font-serif font-bold text-navy-950">Wellness Exams</h4>
+            <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+              Annual metabolic profiling, hormonal equilibrium panels, body composition scans, and longevity roadmaps.
+            </p>
+          </div>
+          <button onclick="openBookingWithSpecialty('Wellness Exams')" class="mt-6 text-xs font-bold text-accent-emerald hover:underline text-left">
+            Book Comprehensive Exam &rarr;
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- DOCTOR PROFILES                                                           -->
+  <!-- ========================================================================= -->
+  <section id="doctors" class="py-24 max-w-7xl mx-auto px-4 sm:px-8">
+    <div class="text-center max-w-2xl mx-auto mb-16">
+      <span class="text-xs font-mono font-bold tracking-widest text-accent-emerald uppercase">Our Medical Staff</span>
+      <h2 class="text-3xl sm:text-5xl font-serif font-bold text-navy-950 mt-2">Physician Faculty</h2>
+      <p class="text-slate-600 text-sm mt-3">Board-certified clinicians leading cutting-edge translational clinical therapies.</p>
+    </div>
+
+    <!-- 5 Profiles Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
+      
+      <!-- Doctor 1: Dr. Robert Namen -->
+      <div class="bg-white rounded-3xl p-4 border border-cream-300 shadow-luxury-card text-center group">
+        <div class="overflow-hidden rounded-2xl bg-cream-200 aspect-square mb-3 relative">
+          <img 
+            src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=500&q=80" 
+            alt="Dr. Robert Namen" 
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          >
+          <span class="absolute bottom-2 left-2 bg-navy-900/80 backdrop-blur-xs text-white text-[9px] px-2 py-0.5 rounded-full font-mono">
+            MD, FACC
+          </span>
+        </div>
+        <h4 class="font-serif font-bold text-navy-950 text-base">Dr. Robert Namen</h4>
+        <p class="text-[11px] text-accent-emerald font-semibold uppercase tracking-wider">Cardiology</p>
+        <button onclick="openBookingWithDoctor('Dr. Robert Namen')" class="mt-3 w-full py-1.5 rounded-xl bg-cream-100 hover:bg-navy-900 hover:text-white text-navy-950 text-[11px] font-bold transition">
+          Consult
+        </button>
+      </div>
+
+      <!-- Doctor 2: Dr. Monika Barton -->
+      <div class="bg-white rounded-3xl p-4 border border-cream-300 shadow-luxury-card text-center group">
+        <div class="overflow-hidden rounded-2xl bg-cream-200 aspect-square mb-3 relative">
+          <img 
+            src="https://images.unsplash.com/photo-1594824813589-a9a5a3a781b0?auto=format&fit=crop&w=500&q=80" 
+            alt="Dr. Monika Barton" 
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          >
+          <span class="absolute bottom-2 left-2 bg-navy-900/80 backdrop-blur-xs text-white text-[9px] px-2 py-0.5 rounded-full font-mono">
+            MD, FAAP
+          </span>
+        </div>
+        <h4 class="font-serif font-bold text-navy-950 text-base">Dr. Monika Barton</h4>
+        <p class="text-[11px] text-accent-emerald font-semibold uppercase tracking-wider">Pediatrics</p>
+        <button onclick="openBookingWithDoctor('Dr. Monika Barton')" class="mt-3 w-full py-1.5 rounded-xl bg-cream-100 hover:bg-navy-900 hover:text-white text-navy-950 text-[11px] font-bold transition">
+          Consult
+        </button>
+      </div>
+
+      <!-- Doctor 3: Dr. Hatherl Vonston -->
+      <div class="bg-white rounded-3xl p-4 border border-cream-300 shadow-luxury-card text-center group">
+        <div class="overflow-hidden rounded-2xl bg-cream-200 aspect-square mb-3 relative">
+          <img 
+            src="https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=500&q=80" 
+            alt="Dr. Hatherl Vonston" 
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          >
+          <span class="absolute bottom-2 left-2 bg-navy-900/80 backdrop-blur-xs text-white text-[9px] px-2 py-0.5 rounded-full font-mono">
+            MD, PhD
+          </span>
+        </div>
+        <h4 class="font-serif font-bold text-navy-950 text-base">Dr. Hatherl Vonston</h4>
+        <p class="text-[11px] text-accent-emerald font-semibold uppercase tracking-wider">Neurology</p>
+        <button onclick="openBookingWithDoctor('Dr. Hatherl Vonston')" class="mt-3 w-full py-1.5 rounded-xl bg-cream-100 hover:bg-navy-900 hover:text-white text-navy-950 text-[11px] font-bold transition">
+          Consult
+        </button>
+      </div>
+
+      <!-- Doctor 4: Dr. Debora Homen -->
+      <div class="bg-white rounded-3xl p-4 border border-cream-300 shadow-luxury-card text-center group">
+        <div class="overflow-hidden rounded-2xl bg-cream-200 aspect-square mb-3 relative">
+          <img 
+            src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=500&q=80" 
+            alt="Dr. Debora Homen" 
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          >
+          <span class="absolute bottom-2 left-2 bg-navy-900/80 backdrop-blur-xs text-white text-[9px] px-2 py-0.5 rounded-full font-mono">
+            DO, FACP
+          </span>
+        </div>
+        <h4 class="font-serif font-bold text-navy-950 text-base">Dr. Debora Homen</h4>
+        <p class="text-[11px] text-accent-emerald font-semibold uppercase tracking-wider">Internal Med</p>
+        <button onclick="openBookingWithDoctor('Dr. Debora Homen')" class="mt-3 w-full py-1.5 rounded-xl bg-cream-100 hover:bg-navy-900 hover:text-white text-navy-950 text-[11px] font-bold transition">
+          Consult
+        </button>
+      </div>
+
+      <!-- Doctor 5: Dr. Marcus Vance -->
+      <div class="bg-white rounded-3xl p-4 border border-cream-300 shadow-luxury-card text-center group col-span-2 sm:col-span-1">
+        <div class="overflow-hidden rounded-2xl bg-cream-200 aspect-square mb-3 relative">
+          <img 
+            src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=500&q=80" 
+            alt="Dr. Marcus Vance" 
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          >
+          <span class="absolute bottom-2 left-2 bg-navy-900/80 backdrop-blur-xs text-white text-[9px] px-2 py-0.5 rounded-full font-mono">
+            MD, FACS
+          </span>
+        </div>
+        <h4 class="font-serif font-bold text-navy-950 text-base">Dr. Marcus Vance</h4>
+        <p class="text-[11px] text-accent-emerald font-semibold uppercase tracking-wider">Orthopedics</p>
+        <button onclick="openBookingWithDoctor('Dr. Marcus Vance')" class="mt-3 w-full py-1.5 rounded-xl bg-cream-100 hover:bg-navy-900 hover:text-white text-navy-950 text-[11px] font-bold transition">
+          Consult
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- PATIENT-FOCUSED TESTIMONIALS                                              -->
+  <!-- ========================================================================= -->
+  <section class="py-20 bg-cream-200/40 border-t border-cream-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8">
+      
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-serif font-bold text-navy-950">Patient-Focused Experiences</h2>
+        <p class="text-xs text-slate-500 mt-2">Empowering individuals through empathetic care and biometric transparency.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <div class="bg-white p-7 rounded-3xl border border-cream-300 shadow-xs relative">
+          <span class="text-4xl text-champagne-400 font-serif leading-none select-none">“</span>
+          <p class="text-xs text-slate-600 italic -mt-2 leading-relaxed">
+            The 3D cardiac model showed my cardiologist precisely where the vascular resistance was originating. Within two weeks, my hypertension was resolved.
+          </p>
+          <div class="flex items-center gap-3 mt-6 pt-4 border-t border-cream-200">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" alt="Alana Ross" class="w-9 h-9 rounded-full object-cover">
+            <div>
+              <div class="text-xs font-bold text-navy-950">Alana Ross</div>
+              <div class="text-[10px] text-slate-400">Cardiology Patient</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-7 rounded-3xl border border-cream-300 shadow-xs relative">
+          <span class="text-4xl text-champagne-400 font-serif leading-none select-none">“</span>
+          <p class="text-xs text-slate-600 italic -mt-2 leading-relaxed">
+            Being able to access my genomic markers and consult Dr. Vonston in 15 minutes through the telehealth portal made all the difference for our family.
+          </p>
+          <div class="flex items-center gap-3 mt-6 pt-4 border-t border-cream-200">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" alt="Marcus Sterling" class="w-9 h-9 rounded-full object-cover">
+            <div>
+              <div class="text-xs font-bold text-navy-950">Marcus Sterling</div>
+              <div class="text-[10px] text-slate-400">Executive Wellness Member</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-7 rounded-3xl border border-cream-300 shadow-xs relative">
+          <span class="text-4xl text-champagne-400 font-serif leading-none select-none">“</span>
+          <p class="text-xs text-slate-600 italic -mt-2 leading-relaxed">
+            Unrivaled luxury and clinical warmth. The telemetry updates feel decades ahead of conventional hospital systems.
+          </p>
+          <div class="flex items-center gap-3 mt-6 pt-4 border-t border-cream-200">
+            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80" alt="Elena Chen" class="w-9 h-9 rounded-full object-cover">
+            <div>
+              <div class="text-xs font-bold text-navy-950">Elena Chen</div>
+              <div class="text-[10px] text-slate-400">Preventative Genomics</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- DARK LUXURY FOOTER                                                        -->
+  <!-- ========================================================================= -->
+  <footer class="bg-navy-950 text-white pt-16 pb-12 border-t border-navy-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8">
+      
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-10 pb-14 border-b border-navy-900">
+        
+        <!-- Brand Info -->
+        <div class="md:col-span-4 space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-white text-navy-950 flex items-center justify-center font-bold">
+              <i data-lucide="cross" class="w-5 h-5 fill-navy-950 stroke-none"></i>
+            </div>
+            <span class="text-2xl font-serif font-bold text-white tracking-tight">HealthPulse</span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed max-w-sm">
+            HealthPulse integrates clinical diagnostics, autonomous 3D biomedical simulation, and concierge care delivery.
+          </p>
+          <div class="flex items-center gap-2 pt-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-[11px] font-mono text-emerald-400">All Clinical Systems Operational &bull; HIPAA Compliant</span>
+          </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="md:col-span-2 space-y-3">
+          <h5 class="text-xs font-bold uppercase tracking-wider text-champagne-400">Platform</h5>
+          <ul class="text-xs space-y-2 text-slate-400">
+            <li><a href="#hero" class="hover:text-white transition">3D Vitals Core</a></li>
+            <li><a href="#biometrics" class="hover:text-white transition">Genomic Sequences</a></li>
+            <li><a href="#services" class="hover:text-white transition">Specialty Centers</a></li>
+            <li><a href="#doctors" class="hover:text-white transition">Physician Faculty</a></li>
+          </ul>
+        </div>
+
+        <!-- Portals -->
+        <div class="md:col-span-2 space-y-3">
+          <h5 class="text-xs font-bold uppercase tracking-wider text-champagne-400">Portals</h5>
+          <ul class="text-xs space-y-2 text-slate-400">
+            <li><a href="#" onclick="openBookingModal(); return false;" class="hover:text-white transition">Patient Care Portal</a></li>
+            <li><a href="#" onclick="openBookingModal(); return false;" class="hover:text-white transition">Doctor EHR System</a></li>
+            <li><a href="#" onclick="openBookingModal(); return false;" class="hover:text-white transition">Admin Telemetry</a></li>
+            <li><a href="#" onclick="openBookingModal(); return false;" class="hover:text-white transition">Telehealth Console</a></li>
+          </ul>
+        </div>
+
+        <!-- Newsletter -->
+        <div class="md:col-span-4 space-y-3">
+          <h5 class="text-xs font-bold uppercase tracking-wider text-champagne-400">Clinical Briefings</h5>
+          <p class="text-xs text-slate-400">Receive peer-reviewed biomedical breakthroughs and preventive medicine digests.</p>
+          <form onsubmit="handleNewsletter(event)" class="flex gap-2">
+            <input 
+              type="email" 
+              required 
+              placeholder="physician@healthpulse.com" 
+              class="w-full text-xs bg-navy-900 border border-navy-800 rounded-xl px-3.5 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-champagne-400"
+            >
+            <button type="submit" class="px-4 py-2.5 bg-accent-emerald hover:bg-accent-emeraldHover text-white rounded-xl text-xs font-bold transition shrink-0">
+              Subscribe
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+      <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500">
+        <div>HealthPulse Clinical OS &copy; 2026. All rights reserved.</div>
+        <div class="flex gap-6 mt-3 sm:mt-0 font-medium">
+          <a href="#" class="hover:text-slate-300">Privacy Policy</a>
+          <a href="#" class="hover:text-slate-300">Terms of Care</a>
+          <a href="#" class="hover:text-slate-300">HIPAA Security Notice</a>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- INTERACTIVE BOOKING MODAL                                                 -->
+  <!-- ========================================================================= -->
+  <div id="bookingModal" class="fixed inset-0 z-50 bg-navy-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-cream-300 relative">
+      
+      <button onclick="closeBookingModal()" class="absolute top-5 right-5 text-slate-400 hover:text-navy-950 p-1 rounded-xl">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-2xl bg-cream-100 border border-cream-200 text-teal-800 flex items-center justify-center">
+          <i data-lucide="calendar-check" class="w-5 h-5 text-accent-emerald"></i>
+        </div>
+        <div>
+          <h3 class="font-serif font-bold text-navy-950 text-xl">Schedule Consultation</h3>
+          <p class="text-xs text-slate-500">HealthPulse Clinical Appointment Concierge</p>
+        </div>
+      </div>
+
+      <form onsubmit="confirmAppointment(event)" class="space-y-4">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Patient Full Name</label>
+          <input 
+            type="text" 
+            required 
+            id="modalPatientName" 
+            placeholder="Arjun Mehta" 
+            value="Arjun Mehta" 
+            class="w-full text-xs p-3 bg-cream-50 border border-cream-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-navy-900 focus:outline-none"
+          >
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Doctor</label>
+            <select id="modalDoctor" class="w-full text-xs p-3 bg-cream-50 border border-cream-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-navy-900 focus:outline-none">
+              <option value="Dr. Robert Namen">Dr. Robert Namen (Cardio)</option>
+              <option value="Dr. Monika Barton">Dr. Monika Barton (Peds)</option>
+              <option value="Dr. Hatherl Vonston">Dr. Hatherl Vonston (Neuro)</option>
+              <option value="Dr. Debora Homen">Dr. Debora Homen (Internal)</option>
+              <option value="Dr. Marcus Vance">Dr. Marcus Vance (Ortho)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Specialty</label>
+            <select id="modalSpecialty" class="w-full text-xs p-3 bg-cream-50 border border-cream-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-navy-900 focus:outline-none">
+              <option value="Cardiology">Cardiology</option>
+              <option value="Pediatrics">Pediatrics</option>
+              <option value="Neurology">Neurology</option>
+              <option value="Primary Care">Primary Care</option>
+              <option value="Wellness Exams">Wellness Exams</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Date</label>
+            <input 
+              type="date" 
+              required 
+              id="modalDate" 
+              value="2026-09-30" 
+              class="w-full text-xs p-3 bg-cream-50 border border-cream-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-navy-900 focus:outline-none"
+            >
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Time Slot</label>
+            <select id="modalTime" class="w-full text-xs p-3 bg-cream-50 border border-cream-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-navy-900 focus:outline-none">
+              <option value="09:00 AM">09:00 AM</option>
+              <option value="11:30 AM">11:30 AM</option>
+              <option value="02:15 PM">02:15 PM</option>
+              <option value="04:45 PM">04:45 PM</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Clinical Notes (Optional)</label>
+          <textarea 
+            id="modalNotes" 
+            rows="2" 
+            placeholder="Include current symptoms or prior medical records..."
+            class="w-full text-xs p-3 bg-cream-50 border border-cream-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-navy-900 focus:outline-none"
+          ></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-3">
+          <button 
+            type="button" 
+            onclick="closeBookingModal()" 
+            class="px-5 py-2.5 text-xs font-semibold text-slate-600 hover:bg-cream-100 rounded-xl transition"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="px-6 py-2.5 rounded-xl bg-accent-emerald hover:bg-accent-emeraldHover text-white text-xs font-bold uppercase tracking-wider shadow-glow-emerald transition active:scale-95"
+          >
+            Confirm Appointment
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TOAST NOTIFICATION CONTAINER                                              -->
+  <!-- ========================================================================= -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none max-w-sm w-full">
+    <div class="bg-navy-950 text-white px-5 py-4 rounded-2xl shadow-2xl border border-navy-800 flex items-start gap-3">
+      <div id="toastIconContainer" class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+        <i id="toastIcon" data-lucide="check-circle" class="w-4 h-4"></i>
+      </div>
+      <div>
+        <h4 id="toastTitle" class="text-xs font-bold text-white">Action Completed</h4>
+        <p id="toastMessage" class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+          Your request has been successfully recorded in the clinical register.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- THREE.JS 3D SCENE & INTERACTIVITY SCRIPT                                   -->
+  <!-- ========================================================================= -->
+  <script>
+    // State variables for Three.js
+    let scene, camera, renderer;
+    let currentMeshGroup;
+    let particleSystem;
+    let currentModelType = 'dna'; // 'dna' | 'heart' | 'cell'
+    let isWireframe = false;
+    let mouseX = 0, mouseY = 0;
+    let targetRotationX = 0, targetRotationY = 0;
+    let isDragging = false;
+    let prevMouseX = 0, prevMouseY = 0;
+    let clock = new THREE.Clock();
+
+    // Palette Constants matching luxury theme
+    const PALETTE = {
+      emerald: 0x158066,
+      gold: 0xC4A265,
+      navy: 0x0E1A2C,
+      cyan: 0x0EA5E9,
+      cream: 0xF9F6F0
+    };
+
+    // Initialize on window load
+    window.addEventListener('load', () => {
+      lucide.createIcons();
+      initThreeEngine();
+      initUIInteractivity();
+    });
+
+    function initThreeEngine() {
+      const container = document.getElementById('three-canvas-container');
+      const width = container.clientWidth || window.innerWidth;
+      const height = container.clientHeight || window.innerHeight;
+
+      // 1. Scene
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0xF9F6F0, 0.018);
+
+      // 2. Camera
+      camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+      camera.position.set(2, 0, 14);
+
+      // 3. Renderer with high DPR support
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      container.appendChild(renderer.domElement);
+
+      // 4. Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+      scene.add(ambientLight);
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      keyLight.position.set(10, 20, 15);
+      scene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0x0EA5E9, 0.8);
+      fillLight.position.set(-10, -10, 10);
+      scene.add(fillLight);
+
+      const emeraldPoint = new THREE.PointLight(PALETTE.emerald, 1.5, 50);
+      emeraldPoint.position.set(4, 2, 4);
+      scene.add(emeraldPoint);
+
+      // 5. Build Background Floating Medical Dust
+      createParticleDust();
+
+      // 6. Build default model (DNA Helix)
+      currentMeshGroup = new THREE.Group();
+      scene.add(currentMeshGroup);
+      buildDnaHelix();
+
+      // 7. Event Listeners for Parallax & Dragging
+      container.addEventListener('pointerdown', (e) => {
+        isDragging = true;
+        prevMouseX = e.clientX;
+        prevMouseY = e.clientY;
+      });
+
+      window.addEventListener('pointerup', () => {
+        isDragging = false;
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        // Mouse normalized for smooth parallax
+        mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+        mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        if (isDragging && currentMeshGroup) {
+          const deltaX = e.clientX - prevMouseX;
+          const deltaY = e.clientY - prevMouseY;
+          currentMeshGroup.rotation.y += deltaX * 0.008;
+          currentMeshGroup.rotation.x += deltaY * 0.008;
+          prevMouseX = e.clientX;
+          prevMouseY = e.clientY;
+        }
+      });
+
+      window.addEventListener('resize', onWindowResize);
+
+      // Start the render loop
+      animateLoop();
+    }
+
+    // ==========================================
+    // 3D MODEL BUILDERS
+    // ==========================================
+
+    // 1. DNA Double Helix Builder
+    function buildDnaHelix() {
+      clearMeshGroup();
+      currentMeshGroup.position.set(2.4, 0, 0); // Position on the right side of hero
+
+      const strandRadius = 1.35;
+      const height = 9.5;
+      const turns = 2.4;
+      const pointsCount = 42;
+
+      const sphereGeo = new THREE.SphereGeometry(0.12, 16, 16);
+      const rungGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 8);
+
+      const matA = new THREE.MeshStandardMaterial({
+        color: PALETTE.emerald,
+        roughness: 0.25,
+        metalness: 0.3,
+        wireframe: isWireframe
+      });
+
+      const matB = new THREE.MeshStandardMaterial({
+        color: PALETTE.cyan,
+        roughness: 0.25,
+        metalness: 0.3,
+        wireframe: isWireframe
+      });
+
+      const matRung = new THREE.MeshStandardMaterial({
+        color: PALETTE.gold,
+        roughness: 0.3,
+        metalness: 0.6,
+        wireframe: isWireframe
+      });
+
+      for (let i = 0; i <= pointsCount; i++) {
+        const progress = i / pointsCount;
+        const y = (progress - 0.5) * height;
+        const angle = progress * Math.PI * 2 * turns;
+
+        // Node A
+        const x1 = Math.cos(angle) * strandRadius;
+        const z1 = Math.sin(angle) * strandRadius;
+        const sphere1 = new THREE.Mesh(sphereGeo, matA);
+        sphere1.position.set(x1, y, z1);
+        currentMeshGroup.add(sphere1);
+
+        // Node B
+        const x2 = Math.cos(angle + Math.PI) * strandRadius;
+        const z2 = Math.sin(angle + Math.PI) * strandRadius;
+        const sphere2 = new THREE.Mesh(sphereGeo, matB);
+        sphere2.position.set(x2, y, z2);
+        currentMeshGroup.add(sphere2);
+
+        // Connecting Base Pair Rung
+        if (i % 2 === 0) {
+          const rung = new THREE.Mesh(rungGeo, matRung);
+          rung.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
+          rung.scale.set(1, strandRadius * 2, 1);
+          rung.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(x1 - x2, 0, z1 - z2).normalize());
+          currentMeshGroup.add(rung);
+        }
+      }
+
+      // Orbiting Outer Ring
+      const ringGeo = new THREE.TorusGeometry(3.2, 0.02, 16, 100);
+      const ringMat = new THREE.MeshBasicMaterial({ color: PALETTE.gold, transparent: true, opacity: 0.35 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 3;
+      ring.name = "orbitRing";
+      currentMeshGroup.add(ring);
+    }
+
+    // 2. Vital Core (Pulsing Holographic Heart / Medical Geosphere)
+    function buildVitalCore() {
+      clearMeshGroup();
+      currentMeshGroup.position.set(2.4, 0, 0);
+
+      // Inner Core Geosphere
+      const coreGeo = new THREE.IcosahedronGeometry(1.6, 2);
+      const coreMat = new THREE.MeshStandardMaterial({
+        color: PALETTE.emerald,
+        wireframe: isWireframe,
+        roughness: 0.2,
+        metalness: 0.4,
+        emissive: 0x073B2E,
+        emissiveIntensity: 0.4
+      });
+      const core = new THREE.Mesh(coreGeo, coreMat);
+      core.name = "pulsingCore";
+      currentMeshGroup.add(core);
+
+      // Surrounding Gyroscope Rings
+      const ringMat = new THREE.MeshStandardMaterial({
+        color: PALETTE.gold,
+        wireframe: isWireframe,
+        roughness: 0.3,
+        metalness: 0.8
+      });
+
+      const ring1 = new THREE.Mesh(new THREE.TorusGeometry(2.5, 0.04, 16, 80), ringMat);
+      ring1.name = "gyroRing1";
+      currentMeshGroup.add(ring1);
+
+      const ring2 = new THREE.Mesh(new THREE.TorusGeometry(3.0, 0.03, 16, 80), ringMat);
+      ring2.rotation.x = Math.PI / 2.5;
+      ring2.name = "gyroRing2";
+      currentMeshGroup.add(ring2);
+
+      // Orbiting Satellite Nodes
+      const satGeo = new THREE.SphereGeometry(0.14, 16, 16);
+      const satMat = new THREE.MeshStandardMaterial({ color: PALETTE.cyan, emissive: 0x0EA5E9, emissiveIntensity: 0.6 });
+      for (let i = 0; i < 6; i++) {
+        const sat = new THREE.Mesh(satGeo, satMat);
+        const phi = (i / 6) * Math.PI * 2;
+        sat.position.set(Math.cos(phi) * 2.5, Math.sin(phi) * 2.5, 0);
+        sat.name = `satNode_${i}`;
+        ring1.add(sat);
+      }
+    }
+
+    // 3. Cell Matrix (Biomedical Lattice Sphere)
+    function buildCellMatrix() {
+      clearMeshGroup();
+      currentMeshGroup.position.set(2.4, 0, 0);
+
+      const group = new THREE.Group();
+      const parentGeo = new THREE.DodecahedronGeometry(2.2, 1);
+      const cellMat = new THREE.MeshStandardMaterial({
+        color: PALETTE.navy,
+        wireframe: isWireframe,
+        roughness: 0.4,
+        metalness: 0.7
+      });
+      const mainCell = new THREE.Mesh(parentGeo, cellMat);
+      group.add(mainCell);
+
+      // Embedded Nucleus
+      const nucleusGeo = new THREE.SphereGeometry(0.9, 32, 32);
+      const nucleusMat = new THREE.MeshStandardMaterial({
+        color: PALETTE.emerald,
+        emissive: 0x158066,
+        emissiveIntensity: 0.5,
+        wireframe: isWireframe
+      });
+      const nucleus = new THREE.Mesh(nucleusGeo, nucleusMat);
+      nucleus.name = "cellNucleus";
+      group.add(nucleus);
+
+      // Receptor Antennas on Vertices
+      const pos = parentGeo.attributes.position;
+      const receptorGeo = new THREE.SphereGeometry(0.09, 8, 8);
+      const receptorMat = new THREE.MeshBasicMaterial({ color: PALETTE.cyan });
+
+      for (let i = 0; i < pos.count; i += 3) {
+        const x = pos.getX(i);
+        const y = pos.getY(i);
+        const z = pos.getZ(i);
+
+        const rec = new THREE.Mesh(receptorGeo, receptorMat);
+        rec.position.set(x * 1.08, y * 1.08, z * 1.08);
+        group.add(rec);
+      }
+
+      currentMeshGroup.add(group);
+    }
+
+    // Background Particle Dust
+    function createParticleDust() {
+      const particleCount = 280;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+
+      const colorA = new THREE.Color(PALETTE.emerald);
+      const colorB = new THREE.Color(PALETTE.gold);
+
+      for (let i = 0; i < particleCount; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 35;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 25;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
+
+        const mixedColor = colorA.clone().lerp(colorB, Math.random());
+        colors[i * 3] = mixedColor.r;
+        colors[i * 3 + 1] = mixedColor.g;
+        colors[i * 3 + 2] = mixedColor.b;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const pMaterial = new THREE.PointsMaterial({
+        size: 0.08,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.65
+      });
+
+      particleSystem = new THREE.Points(geometry, pMaterial);
+      scene.add(particleSystem);
+    }
+
+    function clearMeshGroup() {
+      while (currentMeshGroup.children.length > 0) {
+        const obj = currentMeshGroup.children[0];
+        currentMeshGroup.remove(obj);
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+          else obj.material.dispose();
+        }
+      }
+      currentMeshGroup.rotation.set(0, 0, 0);
+    }
+
+    // ==========================================
+    // RENDER ANIMATION LOOP
+    // ==========================================
+    function animateLoop() {
+      requestAnimationFrame(animateLoop);
+      const elapsedTime = clock.getElapsedTime();
+
+      // Constant gentle rotation
+      if (currentMeshGroup && !isDragging) {
+        if (currentModelType === 'dna') {
+          currentMeshGroup.rotation.y += 0.007;
+          // Floating vertical bobbing
+          currentMeshGroup.position.y = Math.sin(elapsedTime * 1.4) * 0.2;
+        } else if (currentModelType === 'heart') {
+          currentMeshGroup.rotation.y += 0.005;
+          const gyro1 = currentMeshGroup.getObjectByName('gyroRing1');
+          const gyro2 = currentMeshGroup.getObjectByName('gyroRing2');
+          const core = currentMeshGroup.getObjectByName('pulsingCore');
+          if (gyro1) gyro1.rotation.z += 0.015;
+          if (gyro2) gyro2.rotation.y += 0.012;
+          if (core) {
+            // Heartbeat rhythmic expansion
+            const pulse = 1 + Math.sin(elapsedTime * 4.5) * 0.06;
+            core.scale.set(pulse, pulse, pulse);
+          }
+        } else if (currentModelType === 'cell') {
+          currentMeshGroup.rotation.y += 0.006;
+          currentMeshGroup.rotation.x = Math.sin(elapsedTime * 0.8) * 0.15;
+          const nucleus = currentMeshGroup.getObjectByName('cellNucleus');
+          if (nucleus) {
+            const scale = 1 + Math.sin(elapsedTime * 3) * 0.08;
+            nucleus.scale.set(scale, scale, scale);
+          }
+        }
+      }
+
+      // Parallax Mouse Response
+      targetRotationY = mouseX * 0.35;
+      targetRotationX = -mouseY * 0.25;
+
+      camera.position.x += (mouseX * 0.8 + 2 - camera.position.x) * 0.04;
+      camera.position.y += (-mouseY * 0.6 - camera.position.y) * 0.04;
+      camera.lookAt(1.5, 0, 0);
+
+      // Particle subtle drifting
+      if (particleSystem) {
+        particleSystem.rotation.y = elapsedTime * 0.02;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById('three-canvas-container');
+      const width = container.clientWidth || window.innerWidth;
+      const height = container.clientHeight || window.innerHeight;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+
+    // ==========================================
+    // 3D CONTROLS & HUD ACTIONS
+    // ==========================================
+    function switch3DModel(type) {
+      currentModelType = type;
+
+      // Update button styling
+      ['dna', 'heart', 'cell'].forEach(m => {
+        const btn = document.getElementById(`btnMesh-${m}`);
+        if (m === type) {
+          btn.className = "model-tab-btn py-2 px-2.5 rounded-xl text-center text-xs font-bold transition-all bg-navy-900 text-white shadow-xs";
+        } else {
+          btn.className = "model-tab-btn py-2 px-2.5 rounded-xl text-center text-xs font-semibold transition-all bg-white hover:bg-cream-200 text-slate-700 border border-cream-300";
+        }
+      });
+
+      const label = document.getElementById('modelLabel');
+      if (type === 'dna') {
+        label.textContent = "DNA HELIX";
+        buildDnaHelix();
+      } else if (type === 'heart') {
+        label.textContent = "VITAL CORE (72 BPM)";
+        buildVitalCore();
+      } else {
+        label.textContent = "CELL MATRIX";
+        buildCellMatrix();
+      }
+
+      showToast("Biometric Mesh Switched", `Active view updated to ${label.textContent}.`);
+    }
+
+    function toggleWireframe() {
+      isWireframe = !isWireframe;
+      document.getElementById('wireframeText').textContent = `Wireframe: ${isWireframe ? 'ON' : 'OFF'}`;
+      switch3DModel(currentModelType);
+    }
+
+    function reset3DCamera() {
+      mouseX = 0;
+      mouseY = 0;
+      if (currentMeshGroup) {
+        currentMeshGroup.rotation.set(0, 0, 0);
+      }
+      showToast("Camera Reset", "Aligned to initial biometric viewing angle.");
+    }
+
+    // ==========================================
+    // UI INTERACTION, MODAL & TOAST SCRIPTS
+    // ==========================================
+    function initUIInteractivity() {
+      // Simulate live random fluctuation in BPM value
+      setInterval(() => {
+        const bpmEl = document.getElementById('liveBpmValue');
+        if (bpmEl) {
+          const base = 72;
+          const fluctuation = Math.floor(Math.random() * 5) - 2;
+          bpmEl.textContent = base + fluctuation;
+        }
+      }, 3000);
+    }
+
+    // Quick Search Handler
+    function handleQuickSearch(e) {
+      e.preventDefault();
+      const doc = document.getElementById('quickDoctor').value;
+      const spec = document.getElementById('quickSpecialty').value;
+      const date = document.getElementById('quickDate').value;
+      const time = document.getElementById('quickTime').value;
+
+      openBookingModal();
+      document.getElementById('modalDoctor').value = doc.includes('Dr.') ? doc.split(' (')[0] : 'Dr. Robert Namen';
+      document.getElementById('modalSpecialty').value = spec;
+      document.getElementById('modalDate').value = date;
+      document.getElementById('modalTime').value = time;
+
+      showToast("Slot Selected", `Configured consultation for ${date} at ${time}.`);
+    }
+
+    // Booking Modal
+    function openBookingModal() {
+      // Sends visitors into the real HealthPulse app (role-based login) instead
+      // of the static demo modal, so every "Book Consultation" / portal link
+      // on this landing page leads into the actual working system.
+      window.location.href = '/login';
+    }
+
+    function closeBookingModal() {
+      document.getElementById('bookingModal').classList.add('hidden');
+    }
+
+    function openBookingWithDoctor(doctorName) {
+      openBookingModal();
+      const docSelect = document.getElementById('modalDoctor');
+      for (let opt of docSelect.options) {
+        if (opt.value.includes(doctorName)) {
+          docSelect.value = opt.value;
+          break;
+        }
+      }
+      showToast("Physician Selected", `Pre-selected ${doctorName} for appointment.`);
+    }
+
+    function openBookingWithSpecialty(specialty) {
+      openBookingModal();
+      const specSelect = document.getElementById('modalSpecialty');
+      specSelect.value = specialty;
+      showToast("Specialty Chosen", `Focused booking for ${specialty}.`);
+    }
+
+    function confirmAppointment(e) {
+      e.preventDefault();
+      const patient = document.getElementById('modalPatientName').value;
+      const doctor = document.getElementById('modalDoctor').value;
+      const date = document.getElementById('modalDate').value;
+      const time = document.getElementById('modalTime').value;
+
+      closeBookingModal();
+      showToast(
+        "Consultation Confirmed!", 
+        `Visit scheduled for ${patient} with ${doctor} on ${date} at ${time}. Confirmation email dispatched.`
+      );
+    }
+
+    // Newsletter Handler
+    function handleNewsletter(e) {
+      e.preventDefault();
+      e.target.reset();
+      showToast("Subscription Confirmed", "You will now receive weekly clinical and biometric briefs.");
+    }
+
+    // Toast Utility
+    function showToast(title, message) {
+      const toast = document.getElementById('toastNotification');
+      const toastTitle = document.getElementById('toastTitle');
+      const toastMessage = document.getElementById('toastMessage');
+
+      toastTitle.textContent = title;
+      toastMessage.textContent = message;
+
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 4000);
+    }
+  </script>
+
+</body>
+</html>
